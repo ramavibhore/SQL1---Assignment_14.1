@@ -1,0 +1,66 @@
+import numpy as np
+import pandas as pd
+from pandasql import sqldf
+
+##1. Create an sqlalchemy engine using a sample from the data set
+
+from sqlalchemy import create_engine
+engine = create_engine('sqlite:///:memory:', echo=False)
+#engine = create_engine('sqlite:///:memory:', echo=True) ## To Enable Logging
+
+from sqlalchemy.orm import sessionmaker
+Session = sessionmaker(bind=engine)
+Session.configure(bind=engine)
+session = Session()
+
+url="https://archive.ics.uci.edu/ml/machine-learning-databases/adult/adult.data"
+columns=['age','workclass','fnlwgt','education','education_num','marital_status','occupation','relationship','race','sex','capital_gain','capital_loss','hours_per_week','native_country','class']
+adult_df=pd.read_csv(url,names=columns,header=None)
+
+adult_df.to_sql('adult',con=engine,if_exists='replace')
+
+#2. Write two basic update queries
+print('Before updating records..... \n')
+result1=engine.execute("SELECT * FROM adult where age=39 and sex=' Male' and capital_gain=2174").fetchall()
+for line in result1:
+	print(line)
+
+### Here first is updated by workclass as "Self-emp-not-inc" and second row is updated by race as "Black"
+engine.execute("update adult set workclass='Self-emp-not-inc' where age=39 and sex=' Male' and fnlwgt= 77516")
+engine.execute("update adult set race='Black' where age=39 and sex=' Male' and fnlwgt= 190466")
+
+print('\nAfter updating 2 records[1st row updated by workclass][2ndst row updated by race]..... \n')
+result1=engine.execute("SELECT * FROM adult where age=39 and sex=' Male' and capital_gain=2174").fetchall()
+for line in result1:
+	print(line)
+
+#3. Write two delete queries
+engine.execute("delete from adult where age=39 and fnlwgt= 77516")
+engine.execute("delete from adult where age=39 and fnlwgt= 190466")
+
+print('\nAfter deleting above 2 records, no rows found..... \n')
+result1=engine.execute("SELECT * FROM adult where age=39 and sex=' Male' and capital_gain=2174").fetchall()
+for line in result1:
+	print(line)
+	
+#4. Write two filter queries
+print('\nFirst Filtering records [age=40  race=White workclass=Private native_country=Mexico]..... \n')
+result1=engine.execute("SELECT * FROM adult where age=40 and race=' White' and workclass=' Private' and native_country=' Mexico'").fetchall()
+for line in result1:
+	print(line)
+	
+print('\nSecond Filtering records [age=50  race=White workclass=Private native_country=Cuba]..... \n')
+result1=engine.execute("SELECT * FROM adult where age=50 and race=' White' and workclass=' Private' and native_country=' Cuba'").fetchall()
+for line in result1:
+	print(line)
+	
+#5. Write two function queries
+print('\nFirst function query [sum of capital_gain group by race]..... \n')
+result1=engine.execute("SELECT race,sum(capital_gain) FROM adult group by race").fetchall()
+for line in result1:
+	print(line)
+	
+print('\nSecond function query [max of hours_per_week and average age group by sex]..... \n')
+result1=engine.execute("SELECT sex,max(hours_per_week),avg(age) FROM adult group by sex").fetchall()
+for line in result1:
+	print(line)
